@@ -12,3 +12,9 @@ Rows: train 125098, validation 9945, test 11531 - paper says test 9888.
 Train has 33 rows with missing volume and is_gap_direct - drop them.
 About half of crystals have band gap 0. Direct gap is only about 14 percent of rows.
 Median description is 224 words. About 29 percent are over 400 words. Longest is 9825.
+
+## Day 3 - Text preprocessing
+preprocess.py: [NUM] for distances, [ANG] for angles, then stopword removal using 68 lists (2365 words).
+On 2000 validation crystals: 784394 words became 482987 (38 percent removed).
+Problem: stopword lists also delete element symbols like O, Mg, Si, Al, Co when written without a charge.
+Ablation idea: version A = authors method, version B = keep element symbols.
