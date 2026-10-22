@@ -18,3 +18,9 @@ preprocess.py: [NUM] for distances, [ANG] for angles, then stopword removal usin
 On 2000 validation crystals: 784394 words became 482987 (38 percent removed).
 Problem: stopword lists also delete element symbols like O, Mg, Si, Al, Co when written without a charge.
 Ablation idea: version A = authors method, version B = keep element symbols.
+
+Day 3 results: run_preprocess.py cleaned all splits - Version A, authors method.
+Rows kept: train 125065, validation 9940, test 11529 - dropped rows with missing labels.
+Median words per text fell from 224 to 139 after cleaning.
+Version B protects element symbols and keeps 10125 more words on 2000 crystals.
+Cleaned files are in data/processed/A - ignored by git.

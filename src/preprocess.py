@@ -6,6 +6,10 @@ Follows the recipe of the LLM-Prop authors:
   3. remove stopwords        (the, is, of, ...)
 [CLS] is added later, in the tokenizing step.
 
+Two versions (for the ablation study):
+  Version A = the authors' method (keep_elements=False)
+  Version B = same, but element symbols like O, Mg, Si are protected (keep_elements=True)
+
 Run this file to test the cleaning on real crystal texts.
 """
 import re
@@ -25,6 +29,19 @@ VALID_CSV = ROOT / "data" / "TextEdge_v.1" / "TextEdge_v.1" / "validation.csv"
 # The authors keep the words one..nine in the text (they carry the number of
 # neighbours, like 'bonded to five O atoms'), so these are NOT stopwords.
 NUMBER_WORDS = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
+
+# All 118 chemical element symbols. Used by Version B so they are never deleted.
+ELEMENTS = set((
+    "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn "
+    "Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce "
+    "Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn "
+    "Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh "
+    "Fl Mc Lv Ts Og"
+).split())
+# These symbols are also normal English words ('In the first site'), so we cannot
+# protect them without keeping lots of real stopwords.
+AMBIGUOUS = {"I", "In", "As", "At", "Be", "No", "He", "Am"}
+PROTECTED = ELEMENTS - AMBIGUOUS
 
 # a number like 2.30 or a range like 2.30-2.41 (en-dash or normal dash), then a unit
 _NUMBER = r"\d+(?:\.\d+)?(?:[–-]\d+(?:\.\d+)?)?\s*"
@@ -54,14 +71,19 @@ def replace_num_and_ang(text):
     return text
 
 
-def remove_stopwords(text, stopwords):
-    kept = [w for w in text.split() if w.lower() not in stopwords]
+def remove_stopwords(text, stopwords, keep_elements=False):
+    kept = []
+    for w in text.split():
+        if keep_elements and w in PROTECTED:     # Version B: never delete an element symbol
+            kept.append(w)
+        elif w.lower() not in stopwords:
+            kept.append(w)
     return " ".join(kept)
 
 
-def preprocess_text(text, stopwords):
+def preprocess_text(text, stopwords, keep_elements=False):
     """Replace distances/angles FIRST (so they are protected), then drop stopwords."""
-    return remove_stopwords(replace_num_and_ang(str(text)), stopwords)
+    return remove_stopwords(replace_num_and_ang(str(text)), stopwords, keep_elements)
 
 
 if __name__ == "__main__":
@@ -86,6 +108,11 @@ if __name__ == "__main__":
     print("[ANG] count:", sum(t.count("[ANG]") for t in cleaned))
     print("Any Angstrom or degree sign left:",
           sum(("Å" in t) or ("Å" in t) or ("°" in t) for t in cleaned), "texts")
+
+    cleaned_b = [preprocess_text(t, stop, keep_elements=True) for t in texts]
+    after_b = sum(len(t.split()) for t in cleaned_b)
+    print(f"Version B (protect elements) keeps {after_b - after} more words than Version A "
+          f"({after_b} vs {after})")
 
     removed = Counter()
     for t in texts:
